@@ -1,9 +1,21 @@
+from pathspec import PathSpec
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Iterator
 import os
 from logic.extractor import extract_definitions
 from model.types import TreeDict
+
+
+def load_ciignore(root: Path) -> PathSpec:
+    """Returns a PathSpec that matches all patterns in root/.ciignore (gitwildmatch)."""
+    spec = PathSpec.from_lines("gitwildmatch", [])
+    ignore_file = root / ".ciignore"
+    if ignore_file.is_file():
+        with ignore_file.open() as f:
+            spec = PathSpec.from_lines("gitwildmatch", f)
+    return spec
+
 
 @dataclass
 class FunctionNode:
@@ -60,14 +72,34 @@ class TreeBuilder:
     """Builds a hierarchical tree of Python files and their functions."""
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir.resolve()
+        self.ignore_spec: PathSpec = load_ciignore(self.base_dir)
+        loaded = [pat.pattern for pat in self.ignore_spec.patterns]
+        print("⛔️  .ciignore patterns:", loaded, flush=True)
 
     def collect_files(self) -> Iterator[FileNode]:
         """Collect and process all Python files in the directory."""
-        for root, _, files in os.walk(self.base_dir):
+        for root, dirs, files in os.walk(self.base_dir, topdown=True):
+            rel_root = Path(root).relative_to(self.base_dir).as_posix()
+
+            # 2) mutate dirs in-place so os.walk skips ignored folders
+            dirs[:] = [
+                d for d in dirs
+                if not self.ignore_spec.match_file(
+                    f"{rel_root}/{d}" if rel_root else d
+                )
+            ]
+
+            # 3) filter Python files, skipping any ignored ones
             for file in files:
-                if file.endswith('.py'):
-                    path = Path(root) / file
-                    yield FileNode.from_path(path, self.base_dir)
+                if not file.endswith(".py"):
+                    continue
+                rel_file = f"{rel_root}/{file}" if rel_root else file
+                if self.ignore_spec.match_file(rel_file):
+                    continue
+
+                path = Path(root) / file
+                yield FileNode.from_path(path, self.base_dir)
+
 
     def build_file_tree(self, files: Iterator[FileNode]) -> Dict:
         """Build hierarchical tree structure from files."""

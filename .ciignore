@@ -1,0 +1,40 @@
+.venv
+
+# --------------------
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+
+# --------------------
+# Virtualenv
+.venv/
+env/
+venv/
+ENV/
+
+# --------------------
+# IDE / Editor files
+.vscode/
+.idea/
+.continue/
+
+# --------------------
+# Streamlit cache
+.streamlit/cache/
+
+# --------------------
+# Profiles (Optional, if you store user selections)
+profiles/*.json
+
+# --------------------
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
