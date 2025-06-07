@@ -73,8 +73,6 @@ class TreeBuilder:
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir.resolve()
         self.ignore_spec: PathSpec = load_ciignore(self.base_dir)
-        loaded = [pat.pattern for pat in self.ignore_spec.patterns]
-        print("⛔️  .ciignore patterns:", loaded, flush=True)
 
     def collect_files(self) -> Iterator[FileNode]:
         """Collect and process all Python files in the directory."""
